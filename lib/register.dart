@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:login_teacher/dashboard.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class MyRegister extends StatefulWidget {
   const MyRegister({Key? key});
@@ -8,6 +10,27 @@ class MyRegister extends StatefulWidget {
 }
 
 class _MyRegisterState extends State<MyRegister> {
+  final supabase = Supabase.instance.client;
+  final _formkey = GlobalKey<FormState>();
+  final _nameController = TextEditingController();
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+  final _courseNameController = TextEditingController();
+
+  @override
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+    _courseNameController.addListener(() {
+      final text = _courseNameController.text.toUpperCase();
+      _courseNameController.value = _courseNameController.value.copyWith(
+        text: text.replaceAll(' ', ''),
+        selection:
+            TextSelection(baseOffset: text.length, extentOffset: text.length),
+      );
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -24,7 +47,7 @@ class _MyRegisterState extends State<MyRegister> {
             return Center(
               child: Container(
                 width: 400,
-                height: 500,
+                height: 600,
                 decoration: BoxDecoration(
                   color: Colors.black.withOpacity(0.3),
                   borderRadius: BorderRadius.circular(20),
@@ -35,23 +58,29 @@ class _MyRegisterState extends State<MyRegister> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
+                      const Text(
                         'Register Yourself',
                         style: TextStyle(color: Colors.white, fontSize: 33),
                       ),
-                      SizedBox(height: 20),
-                      TextField(
-                        decoration: InputDecoration(
-                          fillColor: Colors.grey.shade100,
-                          filled: true,
-                          hintText: 'Name',
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(10),
+                      const SizedBox(height: 20),
+                      Form(
+                        key: _formkey,
+                        child: TextFormField(
+                          controller: _nameController,
+                          decoration: InputDecoration(
+                            fillColor: Colors.grey.shade100,
+                            filled: true,
+                            hintText: 'Name',
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
                           ),
+                          textCapitalization: TextCapitalization.words,
                         ),
                       ),
-                      SizedBox(height: 20),
-                      TextField(
+                      const SizedBox(height: 20),
+                      TextFormField(
+                        controller: _emailController,
                         decoration: InputDecoration(
                           fillColor: Colors.grey.shade100,
                           filled: true,
@@ -61,8 +90,9 @@ class _MyRegisterState extends State<MyRegister> {
                           ),
                         ),
                       ),
-                      SizedBox(height: 20),
-                      TextField(
+                      const SizedBox(height: 20),
+                      TextFormField(
+                        controller: _passwordController,
                         obscureText: true,
                         decoration: InputDecoration(
                           fillColor: Colors.grey.shade100,
@@ -73,11 +103,25 @@ class _MyRegisterState extends State<MyRegister> {
                           ),
                         ),
                       ),
-                      SizedBox(height: 40),
+                      const SizedBox(
+                        height: 20,
+                      ),
+                      TextFormField(
+                        controller: _courseNameController,
+                        decoration: InputDecoration(
+                          fillColor: Colors.grey.shade100,
+                          filled: true,
+                          hintText: 'Course Name (eg: CSET101)',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 40),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Text(
+                          const Text(
                             'Sign Up',
                             style: TextStyle(
                               fontSize: 27,
@@ -90,15 +134,56 @@ class _MyRegisterState extends State<MyRegister> {
                             backgroundColor: Color.fromARGB(255, 153, 160, 180),
                             child: IconButton(
                               color: Colors.white,
-                              onPressed: () {
-                                Navigator.pushNamed(context, 'dashboard');
+                              onPressed: () async {
+                                final sm = ScaffoldMessenger.of(context);
+
+                                // retrieving course Id from courses2
+                                final courseId = await supabase
+                                    .from('courses2')
+                                    .select('course_id')
+                                    .eq('course_name',
+                                        _courseNameController.text);
+
+                                print("CourseID: ${courseId[0]['course_id']}");
+
+                                final Id = courseId[0]['course_id'];
+
+                                // filling the faculty table
+                                await supabase.from('faculty').insert({
+                                  'name': _nameController.text,
+                                  'course_id': Id
+                                });
+
+                                //storing faculty id 
+                                final faculty_id=await supabase.from('faculty').select('faculty_id').eq('name',_nameController.text );
+
+                                await supabase.auth.signUp(
+                                    password: _passwordController.text,
+                                    email: _emailController.text,
+                                    data:  {
+                                      'name': _nameController.text,
+                                      'courseName': _courseNameController.text,
+                                      'faculty_id':faculty_id
+                                    }).then((value) {
+                                  sm.showSnackBar(SnackBar(
+                                      content: Text(
+                                          "Signed up ${value.user!.email!}")));
+                                  Navigator.pushReplacement(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) => DashboardScreen(),
+                                      ));
+                                }).onError((error, stackTrace) {
+                                  sm.showSnackBar(SnackBar(
+                                      content: Text("Signed up ${error}")));
+                                });
                               },
                               icon: Icon(Icons.arrow_forward),
                             ),
                           ),
                         ],
                       ),
-                      SizedBox(height: 40),
+                      const SizedBox(height: 40),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
@@ -106,7 +191,7 @@ class _MyRegisterState extends State<MyRegister> {
                             onPressed: () {
                               Navigator.pushNamed(context, 'login');
                             },
-                            child: Text(
+                            child: const Text(
                               'Sign In',
                               style: TextStyle(
                                 decoration: TextDecoration.underline,

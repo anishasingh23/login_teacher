@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:login_teacher/login.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class MyDashboard extends StatelessWidget {
+  const MyDashboard({super.key});
+
   @override
   Widget build(BuildContext context) {
     /// Remove the MaterialApp wrapper
@@ -24,7 +28,7 @@ class _DashboardState extends State<DashboardScreen> {
         children: [
           // Background image
           Container(
-            decoration: BoxDecoration(
+            decoration: const BoxDecoration(
               image: DecorationImage(
                 image: AssetImage(
                     'assets/classroom2.png'), // Replace 'assets/background_image.jpg' with your image path
@@ -84,14 +88,14 @@ class HomeScreen extends StatelessWidget {
                 onPressed: () {
                   Navigator.pushNamed(context, 'qr');
                 },
+                style: TextButton.styleFrom(
+                  minimumSize: Size(200.0, 70.0),
+                ),
                 child: Text(
                   'Generate QR',
                   style: GoogleFonts.lato(
-                    textStyle: TextStyle(fontSize: 18.0, color: Colors.white),
+                    textStyle: const TextStyle(fontSize: 18.0, color: Colors.white),
                   ),
-                ),
-                style: TextButton.styleFrom(
-                  minimumSize: Size(200.0, 70.0),
                 ),
               ),
             ),
@@ -117,15 +121,37 @@ class Item1Screen extends StatelessWidget {
 }
 
 class Item2Screen extends StatelessWidget {
+  final supabase=Supabase.instance.client;
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Item 2 Screen'),
-      ),
-      body: Center(
-        child: Text('This is Item 2 Screen'),
-      ),
+      appBar: AppBar(),
+      body: Column(
+          
+          mainAxisSize: MainAxisSize.max,
+          children: [
+            const CircleAvatar(
+              backgroundColor: Colors.transparent,
+              radius: 100,
+              foregroundImage: NetworkImage(
+                  'https://static.vecteezy.com/system/resources/previews/014/194/232/original/avatar-icon-human-a-person-s-badge-social-media-profile-symbol-the-symbol-of-a-person-vector.jpg'),
+            ),
+            Text(supabase.auth.currentSession?.user.userMetadata?['name']),
+            Center(
+              child: FilledButton(
+                child: Text("Logout"),
+                onPressed: () async {
+                  await supabase.auth.signOut().then((value) {
+                    Navigator.pushReplacement(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) =>const MyLogin()
+                        ));
+                  });
+                },
+              ),
+            )
+          ]),
     );
   }
 }
@@ -161,7 +187,7 @@ class _NavigationRailWidgetState extends State<NavigationRailWidget> {
           widget.onDestinationSelected(index);
         },
         labelType: NavigationRailLabelType.selected,
-        destinations: [
+        destinations: const[
           NavigationRailDestination(
             icon: Icon(Icons.home),
             selectedIcon: Icon(Icons.home),
